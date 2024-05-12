@@ -1,43 +1,48 @@
-`ifndef REGISTER_FILE
-`define REGISTER_FILE
+//////////////////////////////////////////////////////////////////////////////////
+// The Cooper Union
+// ECE 251 Spring 2024
+// Engineer: Isaac Schertz, Isaac Amar
+// 
+//     Create Date: 2023-02-07
+//     Module Name: regfile
+//     Description: 32-bit RISC register file
+//
+// Revision: 1.0
+//
+//////////////////////////////////////////////////////////////////////////////////
+`ifndef REGFILE
+`define REGFILE
 
-module register_file(
-    input            clk,  
-    input            rst,
-    // Write port
-    input            reg_write_en,
-    input   [2:0]    reg_write_dest,
-    input   [15:0]   reg_write_data,
-    // Read port 1
-    input   [2:0]    reg_read_addr_1,
-    output reg [15:0] reg_read_data_1,
-    // Read port 2
-    input   [2:0]    reg_read_addr_2,
-    output reg [15:0] reg_read_data_2
-);
-    // Array of 8 registers, each 16-bit wide
-    reg [15:0] reg_array [7:0];
+`timescale 1ns/100ps
 
-    // Reset and write logic
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
-            // Reset all registers to 0 using a loop
-            integer i;
-            for (i = 0; i < 8; i = i + 1) begin
-                reg_array[i] <= 16'b0;
-            end
-        end
-        else if (reg_write_en) begin
-            // Write data to the register specified by reg_write_dest
-            reg_array[reg_write_dest] <= reg_write_data;
-        end
+module regfile
+    #(parameter n = 32, r = 5)(
+        //
+        // ---------------- PORT DEFINITIONS ----------------
+        //
+        input  logic clk, 
+        input  logic we3, 
+        input  logic [(r-1):0] ra1, ra2, wa3, 
+        input  logic [(n-1):0] wd3, 
+        output logic [(n-1):0] rd1, rd2
+    );
+    //
+    // ---------------- MODULE DESIGN IMPLEMENTATION ----------------
+    //
+    localparam NUM_REGS = 2**r; // Number of registers
+    logic [(n-1):0] rf[NUM_REGS-1:0]; // Register array
+
+    // Write logic - write to register wa3 on positive edge of clk if we3 is high and wa3 is not 0
+    always @(posedge clk) begin
+        if (we3 && wa3 != 0) // Ensure we do not write to register 0
+            rf[wa3] <= wd3;
     end
 
-    // Read logic with prevention of reading from register 0
-    always @(*) begin
-        reg_read_data_1 = (reg_read_addr_1 == 0) ? 16'b0 : reg_array[reg_read_addr_1];
-        reg_read_data_2 = (reg_read_addr_2 == 0) ? 16'b0 : reg_array[reg_read_addr_2];
-    end
+    // Read logic - output zero if address is 0, otherwise output register content
+    // Register 0 is always zero
+    assign rd1 = (ra1 != 0) ? rf[ra1] : 0;
+    assign rd2 = (ra2 != 0) ? rf[ra2] : 0;
+
 endmodule
 
-`endif // REGISTER_FILE
+`endif // REGFILE
