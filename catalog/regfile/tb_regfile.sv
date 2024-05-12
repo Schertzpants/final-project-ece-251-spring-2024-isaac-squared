@@ -1,92 +1,52 @@
+//////////////////////////////////////////////////////////////////////////////////
+// The Cooper Union
+// ECE 251 Spring 2024
+// Engineer: Isaac Schertz, Isaac Amar
+// 
+//     Create Date: 2023-02-07
+//     Module Name: tb_regfile
+//     Description: Test bench for simple behavioral register file
+//
+// Revision: 1.0
+//
+//////////////////////////////////////////////////////////////////////////////////
 `ifndef TB_REGFILE
 `define TB_REGFILE
 
-`timescale 1ns/100ps
-`include "register_file.sv"
+`timescale 1ns / 100ps
+`include "regfile.sv"
 
 module tb_regfile;
-    parameter n = 32; // Width of the register and data
-
-    // Inputs
-    reg clk;
-    reg rst;
-    reg reg_write_en;
-    reg [2:0] reg_write_dest;
-    reg [15:0] reg_write_data;
-    reg [2:0] reg_read_addr_1;
-    reg [2:0] reg_read_addr_2;
-
-    // Outputs
-    wire [15:0] reg_read_data_1;
-    wire [15:0] reg_read_data_2;
-
-    // Instantiate the Register File
-    register_file uut (
-        .clk(clk),
-        .rst(rst),
-        .reg_write_en(reg_write_en),
-        .reg_write_dest(reg_write_dest),
-        .reg_write_data(reg_write_data),
-        .reg_read_addr_1(reg_read_addr_1),
-        .reg_read_data_1(reg_read_data_1),
-        .reg_read_addr_2(reg_read_addr_2),
-        .reg_read_data_2(reg_read_data_2)
-    );
+    parameter n = 32;
+    parameter r = 5;
+    logic clk, we3;
+    logic [(r-1):0] ra1, ra2, wa3;
+    logic [(n-1):0] wd3, rd1, rd2;
 
     // Clock generation
-    always #5 clk = ~clk; // Generate a clock with a period of 10ns
+    always #5 clk = ~clk; // Clock with a period of 10ns
 
-    // Test scenarios
     initial begin
-        // Initialize Inputs
+        $dumpfile("tb_regfile.vcd");
+        $dumpvars(0, uut);
+        $monitor("time=%0t \t ra1=%h rd1=%h \t ra2=%h rd2=%h", $time, ra1, rd1, ra2, rd2);
         clk = 0;
-        rst = 1;
-        reg_write_en = 0;
-        reg_write_dest = 0;
-        reg_write_data = 0;
-        reg_read_addr_1 = 0;
-        reg_read_addr_2 = 0;
+        we3 = 0; ra1 = 0; ra2 = 0; wa3 = 0; wd3 = 0; // Initialize signals
 
-        // Apply Reset
-        #10;
-        rst = 0;
+        // Test case: Write and read from a register
+        #10 wa3 = 5; wd3 = 32'hA5A5; we3 = 1; // Write 0xA5A5 to register 5
+        #10 we3 = 0; ra1 = 5; // Read from register 5
 
-        // Write to register 3
-        #10;
-        reg_write_en = 1;
-        reg_write_dest = 3;
-        reg_write_data = 16'hABCD;
-        #10;
-        reg_write_en = 0; // Disable write to hold the value
+        #10 wa3 = 3; wd3 = 32'h1234; we3 = 1; // Write 0x1234 to register 3
+        #10 we3 = 0; ra2 = 3; // Read from register 3
 
-        // Read from register 3
-        reg_read_addr_1 = 3;
-        #10;
-
-        // Write to another register while reading from register 3
-        reg_write_en = 1;
-        reg_write_dest = 2;
-        reg_write_data = 16'h1234;
-        #10;
-        reg_write_en = 0;
-
-        // Read from register 2
-        reg_read_addr_2 = 2;
-        #10;
-
-        // Reset and observe zero on outputs
-        rst = 1;
-        #10;
-        rst = 0;
-        #10;
-
-        $finish;
+        #20 $finish; // End simulation after some time
     end
 
-    // Monitor changes
-    initial begin
-        $monitor("At time %t, Read Data 1 = %h, Read Data 2 = %h", $time, reg_read_data_1, reg_read_data_2);
-    end
+    // Instantiate the register file
+    regfile uut(
+        .clk(clk), .we3(we3), .ra1(ra1), .ra2(ra2), .wa3(wa3), .wd3(wd3), .rd1(rd1), .rd2(rd2)
+    );
 endmodule
 
 `endif // TB_REGFILE
